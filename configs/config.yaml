@@ -8,14 +8,14 @@ model:
 
 # Data settings
 data:
-  dataset_file: "dataset.arrow"  # Path to your preprocessed dataset
-  cell_state_key: "cell_type"    # Column name for labels
-  cell_types:                     # Cell types to classify
-    - "Cardiomyocyte1"
-    - "Cardiomyocyte2"
-    - "Cardiomyocyte3"
-  max_cells: 50000                # Max number of cells to use
-  train_test_split: 0.2           # Test set proportion
+  dataset_file: "cell_type_train_data.dataset"  # Path to downloaded dataset
+  cell_state_key: "cell_type"                    # Column name for labels
+  cell_types:                                    # Cardiomyopathy classifications
+    - "Non-Failing"              # NF - Healthy
+    - "Hypertrophic Cardiomyopathy"  # HCM
+    - "Dilated Cardiomyopathy"       # DCM
+  max_cells: 50000               # Max number of cells to use
+  train_test_split: 0.2          # Test set proportion
 
 # Training hyperparameters
 training:
@@ -51,7 +51,7 @@ logging:
   steps: 500
   wandb_enabled: false
   output_dir: "outputs"
-  output_prefix: "cardiomyocyte_classifier"
+  output_prefix: "cardiomyopathy_classifier"
 
 # Dataloader settings
 dataloader:

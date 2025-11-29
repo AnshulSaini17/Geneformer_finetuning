@@ -1,12 +1,34 @@
-# Geneformer Fine-tuning for Cell Type Classification
+# Geneformer Fine-tuning for Cardiomyopathy Classification
 
-Fine-tuning Geneformer models for cardiomyocyte subtype classification using single-cell RNA-seq data.
+Fine-tuning [Geneformer](https://huggingface.co/ctheodoris/Geneformer) V1 model for classifying cardiomyocyte subtypes in heart disease.
 
-## Overview
+## Task
 
-This project provides a clean, modular implementation for fine-tuning Geneformer on cell classification tasks. The code supports both local training and Google Colab with GPU acceleration.
+**Downstream Classification Task:** Distinguish between three cardiomyopathy conditions:
+- **Non-Failing (NF)** - Healthy heart tissue
+- **Hypertrophic Cardiomyopathy (HCM)** - Heart muscle thickening
+- **Dilated Cardiomyopathy (DCM)** - Heart chamber enlargement
 
-> **⚠️ Data Not Included:** This repository contains code only. You need to provide your own tokenized dataset. See [DATA_GUIDE.md](DATA_GUIDE.md) for instructions on preparing data.
+Using single-cell RNA-seq data from human cardiomyocytes.
+
+## Dataset
+
+**Source:** [Genecorpus-30M Example Dataset](https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/tree/main/example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset)
+
+- **Format:** Pre-tokenized Arrow file (938 MB)
+- **Vocabulary:** Geneformer V1 (~20k gene tokens)
+- **Ready to use:** No additional tokenization needed
+
+Download:
+```bash
+# Using Hugging Face CLI
+huggingface-cli download ctheodoris/Genecorpus-30M \
+  --repo-type dataset \
+  --include "example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset/*" \
+  --local-dir ./data
+```
+
+Or download manually from the [HuggingFace dataset page](https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/tree/main/example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset).
 
 ## Setup
 
@@ -14,92 +36,40 @@ This project provides a clean, modular implementation for fine-tuning Geneformer
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/geneformer-finetuning.git
-cd geneformer-finetuning
+git clone https://github.com/AnshulSaini17/Geneformer_finetuning.git
+cd Geneformer_finetuning
 
 # Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Option 1: Use setup script (easiest)
+# Install dependencies
 bash setup.sh
-
-# Option 2: Manual installation
-pip install -r requirements.txt
-pip install --no-deps git+https://huggingface.co/ctheodoris/Geneformer
 ```
 
 ### Google Colab
 
 ```python
-# Clone repo and install
-!git clone https://github.com/yourusername/geneformer-finetuning.git
-%cd geneformer-finetuning
+!git clone https://github.com/AnshulSaini17/Geneformer_finetuning.git
+%cd Geneformer_finetuning
 !bash setup.sh
 
-# Mount Google Drive (if your dataset is there)
+# Mount Google Drive for data storage
 from google.colab import drive
 drive.mount('/content/drive')
 ```
 
 ## Usage
 
-### 1. Prepare Your Dataset
-
-**Option A: Use Your Own Data**
-
-Your dataset should be a tokenized Arrow file with:
-- `input_ids`: List[int] - Tokenized gene expression data
-- `cell_type`: str - Cell type labels for classification
-- Other metadata columns (optional)
-
-**How to tokenize your data:**
-
-Use Geneformer's tokenizer on your single-cell RNA-seq data:
-
-```python
-from geneformer import TranscriptomeTokenizer
-
-# Tokenize your .loom or .h5ad files
-tk = TranscriptomeTokenizer({"cell_type": "cell_type"}, nproc=4)
-tk.tokenize_data(
-    "path/to/your_data",
-    "output_directory",
-    "output_prefix"
-)
-```
-
-See [Geneformer tokenization guide](https://huggingface.co/ctheodoris/Geneformer) for details.
-
-**Option B: Use Public Datasets**
-
-Download pre-tokenized datasets from:
-- [Geneformer datasets on HuggingFace](https://huggingface.co/ctheodoris)
-- [CellxGene](https://cellxgene.cziscience.com/)
-- Your institution's data repository
-
-**Example Dataset Format:**
-
-```python
-dataset = Dataset.from_file("dataset.arrow")
-print(dataset[0])
-# {
-#   'input_ids': [1234, 5678, ...],  # Gene token IDs
-#   'length': 2048,
-#   'cell_type': 'Cardiomyocyte1',
-#   # ... other metadata
-# }
-```
-
-### 2. Configure Training
+### 1. Configure Training
 
 Edit `configs/config.yaml`:
 
 ```yaml
 data:
-  dataset_file: "dataset.arrow"
+  dataset_file: "path/to/cell_type_train_data.dataset"
   cell_types:
-    - "Cardiomyocyte1"
+    - "Cardiomyocyte1"  # or your specific labels
     - "Cardiomyocyte2"
     - "Cardiomyocyte3"
   max_cells: 50000
@@ -107,95 +77,90 @@ data:
 training:
   num_epochs: 3
   learning_rate: 5e-5
-  batch_size: 16
+  batch_size: 16  # Adjust based on GPU
 ```
 
-### 3. Run Training
+### 2. Run Training
 
 ```bash
 # Basic training
 python src/main.py
 
-# With evaluation and verbose output
+# With evaluation and detailed logs
 python src/main.py --evaluate --verbose
 
-# Custom config or dataset
-python src/main.py --config configs/my_config.yaml --data /path/to/dataset.arrow
+# Custom configuration
+python src/main.py --config configs/my_config.yaml --data /path/to/dataset
 ```
 
-### Command Line Options
+### 3. Command Line Options
 
 ```
---config PATH          Configuration file (default: configs/config.yaml)
---data PATH           Dataset file (overrides config)
---output-dir PATH     Output directory (default: timestamped)
---skip-prepare        Skip data preparation step
---evaluate            Run evaluation after training
---verbose             Show detailed logs
+--config PATH       Configuration file (default: configs/config.yaml)
+--data PATH         Dataset path (overrides config)
+--output-dir PATH   Output directory (default: timestamped)
+--evaluate          Run evaluation after training
+--verbose           Show detailed logs
+--skip-prepare      Skip data preparation (use existing)
+```
+
+## Output
+
+Training results are saved to `outputs/<timestamp>/`:
+
+```
+outputs/20251128_120000/
+├── ksplit1/                              # Trained model checkpoint
+│   ├── pytorch_model.bin
+│   ├── config.json
+│   └── training_args.bin
+├── cardiomyocyte_classifier_conf_mat.png # Confusion matrix
+├── cardiomyocyte_classifier_predictions_*.png
+└── cardiomyocyte_classifier_id_class_dict.pkl
 ```
 
 ## Project Structure
 
 ```
-geneformer-finetuning/
+Geneformer_finetuning/
 ├── src/
 │   ├── main.py                    # Main training script
-│   ├── utils.py                   # Utilities
 │   ├── data/
-│   │   └── dataset_loader.py      # Data loading
+│   │   └── dataset_loader.py      # Data loading utilities
 │   ├── models/
-│   │   └── classifier.py          # Model initialization
+│   │   ├── classifier.py          # Model initialization
+│   │   └── model_patch.py         # V1 model loading patch
 │   ├── training/
-│   │   └── trainer.py             # Training logic
+│   │   └── trainer.py             # Training pipeline
 │   └── evaluation/
-│       └── evaluator.py           # Evaluation and plots
+│       └── evaluator.py           # Evaluation & visualization
 ├── configs/
 │   └── config.yaml                # Training configuration
 ├── notebooks/
-│   └── demo.ipynb                 # Demo notebook
-├── README.md
-├── requirements.txt
-└── .gitignore
+│   └── demo.ipynb                 # Example notebook
+└── requirements.txt
 ```
 
-## Output
+## Configuration
 
-Training outputs are saved to `outputs/<timestamp>/`:
+Key parameters in `configs/config.yaml`:
 
-```
-outputs/20251128_120000/
-├── ksplit1/                              # Trained model checkpoint
-├── cardiomyocyte_classifier_conf_mat.png # Confusion matrix
-└── cardiomyocyte_classifier_predictions_*.png
-```
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `model.version` | `V1` | Geneformer version (V1: 10M params) |
+| `data.max_cells` | `50000` | Maximum cells for training |
+| `training.num_epochs` | `3` | Training epochs |
+| `training.batch_size` | `16` | Per-device batch size |
+| `training.learning_rate` | `5e-5` | Learning rate |
+| `training.bf16` | `true` | Use BF16 precision (GPU) |
 
-## Configuration Options
+## Model Details
 
-| Section | Parameter | Description | Default |
-|---------|-----------|-------------|---------|
-| `model` | `version` | Model version (V1/V2) | `V1` |
-| `data` | `max_cells` | Max cells to use | `50000` |
-| `training` | `num_epochs` | Training epochs | `3` |
-| `training` | `batch_size` | Batch size | `16` |
-| `training` | `learning_rate` | Learning rate | `5e-5` |
-
-## Troubleshooting
-
-### Out of Memory
-
-Reduce batch size and/or max cells in `config.yaml`:
-
-```yaml
-training:
-  batch_size: 8
-  gradient_accumulation_steps: 2
-data:
-  max_cells: 30000
-```
-
-### CUDA Not Available
-
-The code automatically falls back to CPU if CUDA is unavailable.
+- **Base Model:** [Geneformer V1-10M](https://huggingface.co/ctheodoris/Geneformer)
+- **Architecture:** BERT-based transformer for gene expression
+- **Vocabulary Size:** ~20,000 gene tokens
+- **Max Sequence Length:** 2,048 tokens
+- **Pre-training:** 30M single-cell transcriptomes
 
 ## Training Time
 
@@ -204,32 +169,73 @@ The code automatically falls back to CPU if CUDA is unavailable.
 | T4  | 16         | ~30-45 min                 |
 | V100| 32         | ~20-30 min                 |
 | A100| 64         | ~10-15 min                 |
-| CPU | 4          | ~2-3 hours                 |
+
+## Key Features
+
+✅ **Model Loading Patch** - Automatically loads from correct V1-10M subfolder  
+✅ **Configuration-based** - Easy parameter tuning via YAML  
+✅ **Modular Code** - Clean, reusable components  
+✅ **Verified** - Tested against working Colab notebook  
+✅ **Documentation** - Complete guides and examples
+
+## Troubleshooting
+
+### Out of Memory
+
+Reduce batch size in `configs/config.yaml`:
+
+```yaml
+training:
+  batch_size: 8
+  gradient_accumulation_steps: 2
+```
+
+### CUDA Not Available
+
+The code automatically falls back to CPU (slower but works).
+
+### Data Loading Issues
+
+Ensure dataset path is correct:
+```bash
+ls -lh path/to/cell_type_train_data.dataset/
+# Should show: dataset.arrow, dataset_info.json, state.json
+```
 
 ## Citation
 
-If using Geneformer in your research, please cite:
+If you use Geneformer in your research, please cite:
 
+```bibtex
+@article{theodoris2023transfer,
+  title={Transfer learning enables predictions in network biology},
+  author={Theodoris, Christina V and Xiao, Ling and Chopra, Anant and 
+          Chaffin, Mark D and Al Sayed, Zeina R and Hill, Matthew C and 
+          Mantineo, Helene and Brydon, Elizabeth M and Zeng, Zexian and 
+          Liu, X Shirley and others},
+  journal={Nature},
+  volume={618},
+  number={7965},
+  pages={616--624},
+  year={2023},
+  publisher={Nature Publishing Group}
+}
 ```
-Theodoris et al. (2023)
-Transfer learning enables predictions in network biology
-Nature
-```
 
-## GitHub Setup
+## Related Work
 
-```bash
-# Initialize git repository
-git init
-git add .
-git commit -m "Initial commit: Geneformer fine-tuning"
+- **Geneformer Paper:** [Transfer learning enables predictions in network biology](https://www.nature.com/articles/s41586-023-06139-9)
+- **Model on HuggingFace:** [ctheodoris/Geneformer](https://huggingface.co/ctheodoris/Geneformer)
+- **Dataset:** [Genecorpus-30M](https://huggingface.co/datasets/ctheodoris/Genecorpus-30M)
 
-# Create repo on GitHub, then:
-git remote add origin https://github.com/yourusername/geneformer-finetuning.git
-git branch -M main
-git push -u origin main
-```
+## License
+
+MIT License - See LICENSE file for details.
+
+## Contributing
+
+Issues and pull requests are welcome! See [DATA_GUIDE.md](DATA_GUIDE.md) for information on using custom datasets.
 
 ---
 
-**Note**: Make sure large files (models, datasets, outputs) are gitignored before pushing to GitHub.
+**Note:** This repository contains only code. The dataset must be downloaded separately from HuggingFace (see Dataset section above).

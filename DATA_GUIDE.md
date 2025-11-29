@@ -1,35 +1,84 @@
 # Data Preparation Guide
 
-## ⚠️ Data Not Included
+## 📊 Cardiomyopathy Classification Dataset
 
-This repository does **not include training data** due to:
-- Large file sizes (multi-GB)
-- Potential privacy/licensing restrictions
-- Data may be institution-specific
+### Recommended Dataset (Pre-tokenized)
 
-## 📊 Data Requirements
+**Source:** [Genecorpus-30M Cell Classification Example](https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/tree/main/example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset)
 
-Your dataset should be a **tokenized Arrow file** with the following structure:
+- **Task:** Cardiomyocyte subtype classification
+- **Size:** 938 MB
+- **Format:** Arrow dataset (ready to use)
+- **Vocabulary:** Geneformer V1 (~20k gene tokens)
+- **Status:** Already tokenized - no preprocessing needed
 
-```python
-{
-    'input_ids': List[int],      # Tokenized gene expression (required)
-    'length': int,                # Sequence length (required)
-    'cell_type': str,             # Cell type label (required for classification)
-    # Optional metadata:
-    'individual': str,
-    'disease': str,
-    'age': float,
-    'sex': str,
-    # ... any other metadata columns
-}
+### Download Instructions
+
+**Method 1: Hugging Face CLI (Recommended)**
+
+```bash
+# Install HF CLI
+pip install huggingface-hub[cli]
+
+# Download dataset
+huggingface-cli download ctheodoris/Genecorpus-30M \
+  --repo-type dataset \
+  --include "example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset/*" \
+  --local-dir ./data
+
+# The dataset will be in:
+# ./data/example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset/
 ```
 
-## 🔧 How to Get Data
+**Method 2: Manual Download**
 
-### Option 1: Tokenize Your Own Single-Cell Data
+1. Visit: https://huggingface.co/datasets/ctheodoris/Genecorpus-30M/tree/main/example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset
+2. Download all three files:
+   - `dataset.arrow` (938 MB)
+   - `dataset_info.json`
+   - `state.json`
+3. Place in a folder: `cell_type_train_data.dataset/`
 
-If you have raw single-cell RNA-seq data (.loom, .h5ad, etc.):
+**Method 3: Python Script**
+
+```python
+from huggingface_hub import snapshot_download
+
+snapshot_download(
+    repo_id="ctheodoris/Genecorpus-30M",
+    repo_type="dataset",
+    allow_patterns="example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset/*",
+    local_dir="./data"
+)
+```
+
+### Update Configuration
+
+After downloading, update `configs/config.yaml`:
+
+```yaml
+data:
+  dataset_file: "data/example_input_files/cell_classification/cell_type_annotation/cell_type_train_data.dataset"
+  cell_types:
+    - "Cardiomyocyte1"  # Update based on your labels
+    - "Cardiomyocyte2"
+    - "Cardiomyocyte3"
+```
+
+---
+
+## 🔧 Using Your Own Data (Advanced)
+
+If you have your own single-cell RNA-seq data:
+
+### Requirements
+
+Your dataset should include:
+- **Gene expression data** (.loom, .h5ad, or similar)
+- **Cell type annotations** for classification
+- Single-cell resolution
+
+### Tokenization Process
 
 ```python
 from geneformer import TranscriptomeTokenizer
@@ -37,128 +86,99 @@ from geneformer import TranscriptomeTokenizer
 # Initialize tokenizer
 tk = TranscriptomeTokenizer(
     custom_attr_name_dict={"cell_type": "cell_type"},
-    nproc=4  # Number of processes
+    nproc=4
 )
 
 # Tokenize your data
 tk.tokenize_data(
-    data_directory="path/to/your/loom_or_h5ad_files/",
+    data_directory="path/to/your/data/",
     output_directory="output/",
-    output_prefix="tokenized_data",
-    file_format="loom"  # or "h5ad"
+    output_prefix="my_dataset",
+    file_format="h5ad"  # or "loom"
 )
 ```
 
-**See:** [Geneformer Tokenization Example](https://huggingface.co/ctheodoris/Geneformer/blob/main/examples/tokenizing_scRNAseq_data.ipynb)
+**Output:** Tokenized Arrow dataset compatible with this codebase.
 
-### Option 2: Use Public Datasets
+**See:** [Geneformer Tokenization Guide](https://huggingface.co/ctheodoris/Geneformer/blob/main/examples/tokenizing_scRNAseq_data.ipynb)
 
-#### A. Genecorpus-30M (Geneformer Pre-training Data)
-- **Source:** [HuggingFace - Geneformer](https://huggingface.co/ctheodoris/Geneformer)
-- **Size:** ~30M cells from 27M+ single-cell transcriptomes
-- **Format:** Already tokenized
-- **Note:** Large download (~100GB+)
+---
 
-#### B. CellxGene Portal
-- **Source:** [cellxgene.cziscience.com](https://cellxgene.cziscience.com/)
-- **Contains:** Millions of single-cell transcriptomes
-- **Format:** .h5ad (needs tokenization)
-- **License:** Varies by dataset
+## 📋 Dataset Format
 
-#### C. Your Institution's Data
-- Contact your research group/institution
-- May have existing tokenized datasets
-- Often specific to your research domain
+### Required Structure
 
-### Option 3: Use a Small Test Dataset
+```python
+from datasets import load_from_disk
 
-For testing the code without full data:
+dataset = load_from_disk("cell_type_train_data.dataset")
+
+# Example entry:
+{
+    'input_ids': [15234, 8765, 2341, ...],  # Gene token IDs (List[int])
+    'length': 2048,                          # Sequence length (int)
+    'cell_type': 'Cardiomyocyte1',          # Label (str)
+    # Optional metadata:
+    'disease': 'DCM',
+    'individual': 'patient_001',
+    ...
+}
+```
+
+### Vocabulary
+
+- **V1 Tokenizer:** ~20,000 gene tokens
+- **Coverage:** Most expressed human genes
+- **Pre-trained:** On 30M single-cell transcriptomes
+
+---
+
+## 🧪 Test Data (For Code Testing Only)
+
+Create a small dummy dataset to test the code:
 
 ```python
 from datasets import Dataset
 import random
 
-# Create a small dummy dataset
-n_samples = 1000
+# Minimal test dataset
 dummy_data = {
-    'input_ids': [[random.randint(0, 25000) for _ in range(2048)] for _ in range(n_samples)],
-    'length': [2048] * n_samples,
-    'cell_type': random.choices(['Cardiomyocyte1', 'Cardiomyocyte2', 'Cardiomyocyte3'], k=n_samples),
+    'input_ids': [[random.randint(0, 20000) for _ in range(2048)] for _ in range(1000)],
+    'length': [2048] * 1000,
+    'cell_type': random.choices(['Type1', 'Type2', 'Type3'], k=1000),
 }
 
 dataset = Dataset.from_dict(dummy_data)
-dataset.save_to_disk("test_dataset.arrow")
+dataset.save_to_disk("test_dataset")
 ```
 
-**Note:** Dummy data won't train a useful model but lets you test the code!
-
-## 📁 Expected File Structure
-
-After preparing your data:
-
-```
-your-project/
-├── dataset.arrow              # Your tokenized dataset
-└── Geneformer_finetuning/    # This repo
-    ├── src/
-    ├── configs/
-    │   └── config.yaml         # Update dataset_file path here
-    └── ...
-```
-
-Update `configs/config.yaml`:
-
-```yaml
-data:
-  dataset_file: "../dataset.arrow"  # or absolute path
-  cell_types:
-    - "YourCellType1"
-    - "YourCellType2"
-    # ... your specific cell types
-```
-
-## 🚀 Quick Start with Your Data
-
-```bash
-# 1. Prepare your tokenized dataset (dataset.arrow)
-
-# 2. Update config
-nano configs/config.yaml  # Set dataset path and cell types
-
-# 3. Run training
-python src/main.py --evaluate --verbose
-```
-
-## 📚 Additional Resources
-
-- **Geneformer Paper:** [Theodoris et al., Nature 2023](https://www.nature.com/articles/s41586-023-06139-9)
-- **Geneformer Docs:** [HuggingFace Documentation](https://huggingface.co/ctheodoris/Geneformer)
-- **Example Notebooks:** See `Geneformer/examples/` in the official repo
-- **Single-cell Analysis:** [Scanpy Tutorials](https://scanpy.readthedocs.io/)
-
-## ❓ FAQ
-
-**Q: Can I use your exact dataset?**  
-A: The dataset used in development may be private/restricted. Follow the options above to prepare your own data.
-
-**Q: What if my data is in a different format?**  
-A: Use Geneformer's `TranscriptomeTokenizer` to convert .loom, .h5ad, or other formats to the required tokenized format.
-
-**Q: How much data do I need?**  
-A: For fine-tuning, 10,000-100,000+ cells is typical. More data generally gives better results.
-
-**Q: What about data privacy?**  
-A: Never upload patient data or restricted datasets to public repositories. Always follow your institution's data policies.
-
-## 💡 Tips
-
-1. **Start small** - Test with 10k cells before scaling up
-2. **Check cell types** - Ensure your labels match your research question
-3. **Validate tokenization** - Verify `input_ids` look reasonable
-4. **Balance classes** - Try to have similar numbers of each cell type
-5. **Document provenance** - Keep track of where your data came from
+**Note:** Won't train a useful model but validates the pipeline works.
 
 ---
 
-**Need help?** Open an issue on GitHub with details about your data format and we can assist!
+## 📚 Additional Resources
 
+- **Geneformer Paper:** [Nature 2023](https://www.nature.com/articles/s41586-023-06139-9)
+- **HuggingFace Model:** [ctheodoris/Geneformer](https://huggingface.co/ctheodoris/Geneformer)
+- **Dataset Repository:** [Genecorpus-30M](https://huggingface.co/datasets/ctheodoris/Genecorpus-30M)
+- **Tokenization Examples:** [Geneformer Examples](https://huggingface.co/ctheodoris/Geneformer/tree/main/examples)
+
+---
+
+## ❓ FAQ
+
+**Q: Why V1 and not V2?**  
+A: V1 (10M params, 20k vocab) is sufficient for most fine-tuning tasks and faster to train than V2 (104M/316M params).
+
+**Q: Can I use other cell types?**  
+A: Yes! Update `cell_types` in config.yaml with your specific labels.
+
+**Q: How much data do I need?**  
+A: For fine-tuning: 10k-100k+ cells recommended. More data generally improves results.
+
+**Q: What about data privacy?**  
+A: Never upload patient data to public repos. Use public datasets or follow institutional data policies.
+
+---
+
+**Need help?** Open an issue on [GitHub](https://github.com/AnshulSaini17/Geneformer_finetuning/issues) with details about your data format!
