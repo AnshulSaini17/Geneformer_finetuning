@@ -32,8 +32,6 @@ Or download manually from the [HuggingFace dataset page](https://huggingface.co/
 
 ## Setup
 
-### Local Installation
-
 ```bash
 # Clone repository
 git clone https://github.com/AnshulSaini17/Geneformer_finetuning.git
@@ -41,23 +39,16 @@ cd Geneformer_finetuning
 
 # Create virtual environment
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 bash setup.sh
 ```
 
-### Google Colab
-
-```python
-!git clone https://github.com/AnshulSaini17/Geneformer_finetuning.git
-%cd Geneformer_finetuning
-!bash setup.sh
-
-# Mount Google Drive for data storage
-from google.colab import drive
-drive.mount('/content/drive')
-```
+**Requirements:**
+- Python 3.10+
+- CUDA-capable GPU recommended (but works on CPU)
+- 16GB+ RAM
 
 ## Usage
 
@@ -178,6 +169,25 @@ Key parameters in `configs/config.yaml`:
 ✅ **Verified** - Tested against working Colab notebook  
 ✅ **Documentation** - Complete guides and examples
 
+## GPU & Compute Options
+
+This code works on:
+- **Local GPU** (NVIDIA with CUDA)
+- **Institution/Lab GPU** servers
+- **Cloud platforms** (AWS, Azure, GCP)
+- **Google Colab** (if you need free GPU access)
+- **CPU** (slower but functional)
+
+### Google Colab Setup
+
+If you don't have a GPU, use Google Colab:
+
+```python
+!git clone https://github.com/AnshulSaini17/Geneformer_finetuning.git
+%cd Geneformer_finetuning
+!bash setup.sh
+```
+
 ## Troubleshooting
 
 ### Out of Memory
@@ -192,7 +202,7 @@ training:
 
 ### CUDA Not Available
 
-The code automatically falls back to CPU (slower but works).
+Code automatically uses CPU if no GPU found (slower but works).
 
 ### Data Loading Issues
 
