@@ -1,6 +1,13 @@
 """
-Model loading patch for Geneformer V1
-Required to load from correct subfolder on HuggingFace
+Model loading patch for Geneformer V1 from HuggingFace Hub
+
+This patch is ONLY needed when loading from HuggingFace:
+  model_directory = "ctheodoris/Geneformer"
+
+NOT needed when using local paths:
+  model_directory = "/path/to/Geneformer-V1-10M"
+
+The patch checks the model_directory and only activates for HuggingFace Hub URLs.
 """
 
 import geneformer.perturber_utils as pu
@@ -18,9 +25,10 @@ def patched_load_model(model_type, num_classes, model_directory, mode, quantize=
     Patched version of load_model that loads from correct V1-10M subfolder
     
     This fixes the issue where Geneformer tries to load from wrong location
-    on HuggingFace Hub.
+    on HuggingFace Hub. Only activates for "ctheodoris/Geneformer", not local paths.
     """
     if model_directory == "ctheodoris/Geneformer" and model_type == "CellClassifier":
+        # Only patch HuggingFace Hub loading, not local paths
         print(f"Loading V1-10M model from subfolder...")
         
         model = BertForSequenceClassification.from_pretrained(

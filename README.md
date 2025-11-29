@@ -163,9 +163,10 @@ Key parameters in `configs/config.yaml`:
 
 ## Key Features
 
-✅ **Model Loading Patch** - Automatically loads from correct V1-10M subfolder  
+✅ **Smart Model Loading** - Automatically handles HuggingFace V1 subfolder (local paths work too)  
 ✅ **Configuration-based** - Easy parameter tuning via YAML  
 ✅ **Modular Code** - Clean, reusable components  
+✅ **Works Everywhere** - Local GPU, Colab, cloud platforms  
 ✅ **Verified** - Tested against working Colab notebook  
 ✅ **Documentation** - Complete guides and examples
 
