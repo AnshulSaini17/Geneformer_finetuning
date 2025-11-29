@@ -6,6 +6,8 @@ Fine-tuning Geneformer models for cardiomyocyte subtype classification using sin
 
 This project provides a clean, modular implementation for fine-tuning Geneformer on cell classification tasks. The code supports both local training and Google Colab with GPU acceleration.
 
+> **⚠️ Data Not Included:** This repository contains code only. You need to provide your own tokenized dataset. See [DATA_GUIDE.md](DATA_GUIDE.md) for instructions on preparing data.
+
 ## Setup
 
 ### Local Installation
@@ -44,10 +46,50 @@ drive.mount('/content/drive')
 
 ### 1. Prepare Your Dataset
 
-Your dataset should be an Arrow file with:
-- `input_ids`: Tokenized gene expression data
-- `cell_type`: Cell type labels
-- Other metadata columns
+**Option A: Use Your Own Data**
+
+Your dataset should be a tokenized Arrow file with:
+- `input_ids`: List[int] - Tokenized gene expression data
+- `cell_type`: str - Cell type labels for classification
+- Other metadata columns (optional)
+
+**How to tokenize your data:**
+
+Use Geneformer's tokenizer on your single-cell RNA-seq data:
+
+```python
+from geneformer import TranscriptomeTokenizer
+
+# Tokenize your .loom or .h5ad files
+tk = TranscriptomeTokenizer({"cell_type": "cell_type"}, nproc=4)
+tk.tokenize_data(
+    "path/to/your_data",
+    "output_directory",
+    "output_prefix"
+)
+```
+
+See [Geneformer tokenization guide](https://huggingface.co/ctheodoris/Geneformer) for details.
+
+**Option B: Use Public Datasets**
+
+Download pre-tokenized datasets from:
+- [Geneformer datasets on HuggingFace](https://huggingface.co/ctheodoris)
+- [CellxGene](https://cellxgene.cziscience.com/)
+- Your institution's data repository
+
+**Example Dataset Format:**
+
+```python
+dataset = Dataset.from_file("dataset.arrow")
+print(dataset[0])
+# {
+#   'input_ids': [1234, 5678, ...],  # Gene token IDs
+#   'length': 2048,
+#   'cell_type': 'Cardiomyocyte1',
+#   # ... other metadata
+# }
+```
 
 ### 2. Configure Training
 
